@@ -67,6 +67,15 @@ class DADA(object):
         test_labels = np.array(test_labels)
         gt = test_labels.astype(int)
         
+        # 保存异常分数，方便用户传回本地分析
+        np.save(os.path.join(folder_path, 'anomaly_score.npy'), test_scores)
+        print(f"\n结果已保存至: {os.path.join(folder_path, 'anomaly_score.npy')}")
+
+        # 如果没有真实标签（全0），则跳过指标计算逻辑
+        if np.sum(gt) == 0:
+            print("提示: 检测到数据无标注异常点 (Ground Truth all zero)，跳过指标评估阶段。")
+            return
+
         from ts_ad_evaluation import Evaluator
         evaluator = Evaluator(gt, test_scores, folder_path)
         evaluator.evaluate(metrics=self.args.metric, affiliation=self.args.t)  
