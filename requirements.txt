@@ -4,4 +4,4 @@ pandas
 torch
 scikit-learn
 matplotlib
-transformers==4.33.3
+transformers==4.33.3tqdm

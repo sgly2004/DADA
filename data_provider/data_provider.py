@@ -90,6 +90,20 @@ class TrainSegLoader(Dataset):
 
 def read_data(path: str, nrows=None) -> pd.DataFrame:
     data = pd.read_csv(path)
+    
+    # 兼容中文“日期”和标准“date”
+    if "日期" in data.columns:
+        data.rename(columns={"日期": "date"}, inplace=True)
+    
+    # 如果数据已经是宽格式（没有 'cols' 列），直接处理
+    if "cols" not in data.columns:
+        if "date" in data.columns:
+            data["date"] = pd.to_datetime(data["date"])
+            data.set_index("date", inplace=True)
+        if "label" not in data.columns:
+            data["label"] = 0
+        return data
+
     label_exists = "label" in data["cols"].values
     all_points = data.shape[0]
     columns = data.columns

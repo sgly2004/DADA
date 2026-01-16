@@ -6,3 +6,4 @@ __pycache__/
 .idea
 /test_results/
 /dataset/evaluation_dataset/data/
+/dataset/csv_data/
