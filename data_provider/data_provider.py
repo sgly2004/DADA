@@ -147,7 +147,17 @@ def read_data(path: str, nrows=None) -> pd.DataFrame:
 def read_meta(root_path, dataset):
     meta_path = root_path + "/DETECT_META.csv"
     meta = pd.read_csv(meta_path)
-    meta = meta.query(f'file_name.str.contains("{dataset}")', engine="python")
-    file_paths = root_path + f"/data/{meta.file_name.values[0]}"
-    train_lens = meta.train_lens.values[0]
+    
+    # 优先精确匹配 dataset_name 列
+    temp_meta = meta[meta['dataset_name'] == dataset]
+    
+    # 如果没找到，退而求其次在 file_name 列中模糊搜索（兼容原始逻辑）
+    if temp_meta.empty:
+        temp_meta = meta[meta['file_name'].str.contains(dataset, na=False)]
+    
+    if temp_meta.empty:
+        raise ValueError(f"在 DETECT_META.csv 中找不到数据集: {dataset}")
+        
+    file_paths = root_path + f"/data/{temp_meta.file_name.values[0]}"
+    train_lens = temp_meta.train_lens.values[0]
     return file_paths, train_lens
