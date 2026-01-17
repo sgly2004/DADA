@@ -135,10 +135,60 @@ def visualize(dataset_name, threshold):
     plt.tight_layout()
     
     # 保存图片
-    output_fig = os.path.join('test_results', dataset_name, 'plot.png')
+    output_fig = os.path.join('test_results', dataset_name, 'plot_global.png')
     plt.savefig(output_fig, dpi=150)
-    print(f"可视化图片已生成: {output_fig}")
+    print(f"全局可视化图片已生成: {output_fig}")
     plt.close()
+
+    # --- 新增：切分可视化逻辑 ---
+    if os.path.exists(boundary_file):
+        split_dir = os.path.join('test_results', dataset_name, 'splits')
+        os.makedirs(split_dir, exist_ok=True)
+        print(f"正在生成切分可视化图到: {split_dir} ...")
+        
+        for b in boundaries:
+            file_name = b['file']
+            start_idx = b['start'] - train_lens
+            end_idx = b['end'] - train_lens
+            
+            # 确保索引在有效范围内
+            if end_idx <= 0 or start_idx >= len(scores):
+                continue
+            
+            s = max(0, start_idx)
+            e = min(len(scores), end_idx)
+            
+            # 提取片段数据
+            sub_stamps = timestamps[s:e]
+            sub_values = values[s:e]
+            sub_scores = scores[s:e]
+            
+            if len(sub_stamps) == 0:
+                continue
+
+            # 绘图
+            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
+            ax1.plot(sub_stamps, sub_values, label='Value', color='#1f77b4')
+            ax1.set_title(f"File: {file_name}", fontsize=12)
+            
+            ax2.plot(sub_stamps, sub_scores, label='Score', color='#ff7f0e')
+            ax2.axhline(y=threshold, color='red', linestyle='--')
+            
+            # 高亮异常区域
+            sub_is_anomaly = sub_scores > threshold
+            if np.any(sub_is_anomaly):
+                diff = np.diff(sub_is_anomaly.astype(int), prepend=0, append=0)
+                starts = np.where(diff == 1)[0]
+                ends = np.where(diff == -1)[0]
+                for st, en in zip(starts, ends):
+                    en = min(en, len(sub_stamps)-1)
+                    ax1.axvspan(sub_stamps[st], sub_stamps[en], color='red', alpha=0.2)
+                    ax2.axvspan(sub_stamps[st], sub_stamps[en], color='red', alpha=0.2)
+            
+            plt.tight_layout()
+            plt.savefig(os.path.join(split_dir, f"plot_{file_name.replace('.csv', '.png')}"))
+            plt.close()
+        print(f"所有切分图片已完成。")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='DADA Result Visualization')
