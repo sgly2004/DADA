@@ -45,10 +45,13 @@ class TrainSegLoader(Dataset):
             train_data = np.delete(train_data, discrete_channels, axis=-1)
             test_data = np.delete(test_data, discrete_channels, axis=-1)
         
+        # 增加处理：防止全 0 或常数列导致标准化产生 NaN
         self.scaler = StandardScaler()
         self.scaler.fit(train_data)
-        train_data = self.scaler.transform(train_data)
-        test_data = self.scaler.transform(test_data)
+        
+        # 检查是否有标准差为 0 的列，手动处理防止除零
+        train_data = (train_data - self.scaler.mean_) / (self.scaler.scale_ + 1e-8)
+        test_data = (test_data - self.scaler.mean_) / (self.scaler.scale_ + 1e-8)
 
         if flag == "init":
             self.init = train_data

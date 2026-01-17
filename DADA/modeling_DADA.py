@@ -474,14 +474,18 @@ class SparseDispatcher(object):
 
         self._gates = gates
         self._num_experts = num_experts
+        
+        # 修正：使用 gates > 0 来统一获取非零索引，防止 NaN 干扰
+        nonzero_mask = gates > 0
+        
         # sort experts
-        sorted_experts, index_sorted_experts = torch.nonzero(gates).sort(0)
+        sorted_experts, index_sorted_experts = torch.nonzero(nonzero_mask).sort(0)
         # drop indices
         _, self._expert_index = sorted_experts.split(1, dim=1)
         # get according batch index for each expert
-        self._batch_index = torch.nonzero(gates)[index_sorted_experts[:, 1], 0]
+        self._batch_index = torch.nonzero(nonzero_mask)[index_sorted_experts[:, 1], 0]
         # calculate num samples that each expert gets
-        self._part_sizes = (gates > 0).sum(0).tolist()
+        self._part_sizes = nonzero_mask.sum(0).tolist()
         # expand gates to match with self._batch_index
         gates_exp = gates[self._batch_index.flatten()]
         self._nonzero_gates = torch.gather(gates_exp, 1, self._expert_index)
