@@ -102,6 +102,9 @@ def visualize(dataset_name, threshold):
     ax1.set_title(f'Anomaly Detection Result: {dataset_name}', fontsize=14)
     ax1.grid(True, linestyle='--', alpha=0.5)
     
+    # 获取真实标签
+    gt_labels = test_df['label'].values[:min_len]
+    
     # 子图2: 异常分数
     ax2.plot(timestamps, scores, label='Anomaly Score', color='#ff7f0e', linewidth=1)
     ax2.axhline(y=threshold, color='red', linestyle='--', label=f'Threshold ({threshold})')
@@ -112,22 +115,25 @@ def visualize(dataset_name, threshold):
     # 4. 高亮异常区域 (阈值之上的区间设为浅红色)
     is_anomaly = scores > threshold
     if np.any(is_anomaly):
-        # 寻找异常区间的起止点
-        # 转换为整数数组以检测跳变
         ia_int = is_anomaly.astype(int)
-        diff = np.diff(ia_int)
-        
-        anomaly_starts = np.where(diff == 1)[0] + 1
-        if is_anomaly[0]:
-            anomaly_starts = np.insert(anomaly_starts, 0, 0)
-            
-        anomaly_ends = np.where(diff == -1)[0]
-        if is_anomaly[-1]:
-            anomaly_ends = np.append(anomaly_ends, len(is_anomaly) - 1)
-            
-        for start, end in zip(anomaly_starts, anomaly_ends):
-            ax1.axvspan(timestamps[start], timestamps[end], color='red', alpha=0.2)
-            ax2.axvspan(timestamps[start], timestamps[end], color='red', alpha=0.2)
+        diff = np.diff(ia_int, prepend=0, append=0)
+        starts = np.where(diff == 1)[0]
+        ends = np.where(diff == -1)[0]
+        for st, en in zip(starts, ends):
+            en = min(en, len(timestamps)-1)
+            ax1.axvspan(timestamps[st], timestamps[en], color='red', alpha=0.2, label='Predicted' if st==starts[0] else "")
+            ax2.axvspan(timestamps[st], timestamps[en], color='red', alpha=0.2)
+
+    # 5. 高亮真实标注区间 (浅绿色)
+    if np.any(gt_labels > 0):
+        gt_int = gt_labels.astype(int)
+        diff_gt = np.diff(gt_int, prepend=0, append=0)
+        starts_gt = np.where(diff_gt == 1)[0]
+        ends_gt = np.where(diff_gt == -1)[0]
+        for st, en in zip(starts_gt, ends_gt):
+            en = min(en, len(timestamps)-1)
+            ax1.axvspan(timestamps[st], timestamps[en], color='green', alpha=0.2, label='Ground Truth' if st==starts_gt[0] else "")
+            ax2.axvspan(timestamps[st], timestamps[en], color='green', alpha=0.2)
             
     ax1.legend(loc='upper right')
     ax2.legend(loc='upper right')
