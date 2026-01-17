@@ -1,6 +1,8 @@
 import os
+import numpy as np
 import pandas as pd
 from tqdm import tqdm
+import json
 
 def prepare():
     raw_data_path = 'dataset/csv_data'
@@ -8,82 +10,78 @@ def prepare():
     meta_file = 'dataset/evaluation_dataset/DETECT_META.csv'
     
     target_cols = ['CHX00F003FT0101', 'CHX00F002FT0101']
+    win_size = 100 # 对应模型 seq_len
     
-    # 确保输出目录存在
-    for col in target_cols:
-        os.makedirs(os.path.join(base_output_path, col), exist_ok=True)
-    
-    # 读取现有的元数据，如果没有则创建
+    # 清理旧元数据，保留表头
     if os.path.exists(meta_file):
-        meta_df = pd.read_csv(meta_file)
-    else:
-        columns = ['file_name','trend','seasonal','stationary','pattern','shifting','dataset_name','type_value','train_lens','time_steps','if_univariate','size']
-        meta_df = pd.DataFrame(columns=columns)
-
-    new_entries = []
+        with open(meta_file, 'r') as f:
+            header = f.readline()
+        with open(meta_file, 'w') as f:
+            f.write(header)
     
-    print("正在从 dataset/csv_data 提取序列并准备数据...")
-    if not os.path.exists(raw_data_path):
-        print(f"错误: 找不到目录 {raw_data_path}")
-        return
-
-    csv_files = [f for f in os.listdir(raw_data_path) if f.endswith('.csv')]
+    meta_entries = []
     
-    for file in tqdm(csv_files):
-        file_full_path = os.path.join(raw_data_path, file)
-        try:
-            df = pd.read_csv(file_full_path)
-        except Exception as e:
-            print(f"读取文件 {file} 失败: {e}")
-            continue
-
-        # 统一日期列名
-        if '日期' in df.columns:
-            df.rename(columns={'日期': 'date'}, inplace=True)
-        elif 'date' not in df.columns:
-            # 如果没有日期列，尝试用第一列作为日期
-            df.rename(columns={df.columns[0]: 'date'}, inplace=True)
+    csv_files = sorted([f for f in os.listdir(raw_data_path) if f.endswith('.csv')])
+    
+    for col in target_cols:
+        print(f"正在合并序列: {col}...")
+        all_dfs = []
+        boundaries = []
+        current_pos = 0
         
-        for col in target_cols:
+        for file in tqdm(csv_files):
+            df = pd.read_csv(os.path.join(raw_data_path, file))
+            if '日期' in df.columns:
+                df.rename(columns={'日期': 'date'}, inplace=True)
+            elif 'date' not in df.columns:
+                df.rename(columns={df.columns[0]: 'date'}, inplace=True)
+            
             if col in df.columns:
-                # 提取单变量数据
-                univariate_df = df[['date', col]].copy()
-                univariate_df['label'] = 0 # 默认全0标签
+                sub_df = df[['date', col]].copy()
+                sub_df['label'] = 0
                 
-                # 保存路径：例如 dataset/evaluation_dataset/data/CHX00F003FT0101/1001.csv
-                # 对应 data_provider 会寻找 root_path + /data/ + file_name
-                save_rel_path = os.path.join(col, file)
-                save_full_path = os.path.join(base_output_path, save_rel_path)
+                # 记录边界：[开始索引, 结束索引]
+                boundaries.append({
+                    'file': file,
+                    'start': current_pos,
+                    'end': current_pos + len(sub_df)
+                })
                 
-                univariate_df.to_csv(save_full_path, index=False)
-                
-                # 准备元数据注册信息
-                # 使用 tag 区分不同的文件和传感器
-                tag = f"Gas_{col}_{file.replace('.csv', '')}"
-                
-                # 如果元数据中已存在该 file_name，则更新或跳过
-                if save_rel_path not in meta_df['file_name'].values:
-                    new_entries.append({
-                        'file_name': save_rel_path,
-                        'dataset_name': tag,
-                        'train_lens': int(len(univariate_df) * 0.2), # 默认用前20%做初始化
-                        'if_univariate': 'TRUE',
-                        'size': 'small'
-                    })
-    
-    if new_entries:
-        new_meta = pd.DataFrame(new_entries)
-        # 确保列顺序一致
-        for col in meta_df.columns:
-            if col not in new_meta.columns:
-                new_meta[col] = None
-        new_meta = new_meta[meta_df.columns]
+                all_dfs.append(sub_df)
+                current_pos += len(sub_df)
         
-        meta_df = pd.concat([meta_df, new_meta], ignore_index=True)
-        meta_df.to_csv(meta_file, index=False)
-        print(f"成功注册 {len(new_entries)} 条新序列。")
-    else:
-        print("没有发现新序列或已全部注册。")
+        if all_dfs:
+            merged_df = pd.concat(all_dfs, ignore_index=True)
+            save_dir = os.path.join(base_output_path, col)
+            os.makedirs(save_dir, exist_ok=True)
+            
+            save_name = f"merged.csv"
+            merged_df.to_csv(os.path.join(save_dir, save_name), index=False)
+            
+            # 保存边界信息，供可视化使用
+            with open(os.path.join(save_dir, 'boundaries.json'), 'w') as f:
+                json.dump(boundaries, f)
+            
+            # 注册到元数据
+            tag = f"Gas_{col}_Merged"
+            meta_entries.append({
+                'file_name': f"{col}/{save_name}",
+                'dataset_name': tag,
+                'train_lens': int(len(merged_df) * 0.1), # 用 10% 做初始化
+                'if_univariate': 'TRUE',
+                'size': 'large'
+            })
+
+    if meta_entries:
+        meta_df = pd.read_csv(meta_file)
+        new_meta = pd.DataFrame(meta_entries)
+        # 补齐列
+        for c in meta_df.columns:
+            if c not in new_meta.columns:
+                new_meta[c] = None
+        new_meta = new_meta[meta_df.columns]
+        pd.concat([meta_df, new_meta], ignore_index=True).to_csv(meta_file, index=False)
+        print(f"成功合并并注册 2 条长序列。")
 
 if __name__ == '__main__':
     prepare()

@@ -10,10 +10,18 @@ def visualize(dataset_name, threshold):
         print(f"错误: 找不到元数据文件 {meta_file}")
         return
 
-    meta_df = pd.read_csv(meta_file)
+    # 使用 utf-8-sig 编码以处理可能存在的 BOM
+    meta_df = pd.read_csv(meta_file, encoding='utf-8-sig')
+    # 去除列名和值中的空格/换行符
+    meta_df.columns = meta_df.columns.str.strip()
+    meta_df['dataset_name'] = meta_df['dataset_name'].astype(str).str.strip()
+    
+    # 调试信息
+    # print(f"DEBUG: Searching for '{dataset_name.strip()}'")
+    # print(f"DEBUG: Available names: {meta_df['dataset_name'].tolist()[:3]}")
     
     # 查找对应的元数据行
-    row = meta_df[meta_df['dataset_name'] == dataset_name]
+    row = meta_df[meta_df['dataset_name'] == dataset_name.strip()]
     if row.empty:
         print(f"错误: 在 DETECT_META.csv 中找不到数据集 {dataset_name}")
         return
@@ -51,11 +59,35 @@ def visualize(dataset_name, threshold):
     # 2. 加载异常分数
     score_path = os.path.join('test_results', dataset_name, 'anomaly_score.npy')
     if not os.path.exists(score_path):
-        print(f"错误: 找不到异常分数文件 {score_path}。请确保已运行推理脚本。")
+        print(f"错误: 找不到异常分数文件 {score_path}")
         return
     scores = np.load(score_path)
     
-    # 对齐长度（防止因窗口切分导致的极小差异）
+    # 3. 处理拼接边界 (将拼接点前后 win_size 范围内的分数设为 0)
+    boundary_file = os.path.join('dataset/evaluation_dataset/data', os.path.dirname(file_rel_path), 'boundaries.json')
+    if os.path.exists(boundary_file):
+        import json
+        with open(boundary_file, 'r') as f:
+            boundaries = json.load(f)
+        
+        win_size = 100 # 窗口大小
+        for b in boundaries:
+            # b['start'] 是拼接点
+            # 注意：scores 对应的是全量数据减去 train_lens 后的部分
+            # 但为了简化，我们直接在原始坐标系处理，然后截取
+            pass 
+        
+        # 修正逻辑：在 scores 所在的索引范围内，识别边界
+        # 边界点在全局索引中的位置是 b['start']
+        # 转换到 scores 的索引需要减去 train_lens
+        for i in range(1, len(boundaries)):
+            b_idx = boundaries[i]['start'] - train_lens
+            if 0 <= b_idx < len(scores):
+                start = max(0, b_idx - win_size)
+                end = min(len(scores), b_idx + win_size)
+                scores[start:end] = 0 # 消除边界跳变干扰
+    
+    # 对齐长度
     min_len = min(len(values), len(scores))
     values = values[:min_len]
     scores = scores[:min_len]
