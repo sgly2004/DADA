@@ -33,12 +33,12 @@
 为证明算法的普适性，我们针对全线关键站点及主要操作类型进行了全量识别验证。
 
 **1. 站点覆盖展示：**
-*   **全线相关操作 (1001)：**
-    > ![1001_full_diagnosis](./visualization/timesnet_multi_dim_v2/1001_full_diagnosis.png)
-*   **鄂托克站 (1002)：**
-    > ![1002_full_diagnosis](./visualization/timesnet_multi_dim_v2/1002_full_diagnosis.png)
-*   **乌审旗站 (1005)：**
-    > ![1005_full_diagnosis](./visualization/timesnet_multi_dim_v2/1005_full_diagnosis.png)
+*   **全线相关操作 (1013)：**
+    > ![1013_full_diagnosis](./visualization/timesnet_multi_dim_v2/1013_full_diagnosis.png)
+*   **鄂托克站 (1015)：**
+    > ![1015_full_diagnosis](./visualization/timesnet_multi_dim_v2/1015_full_diagnosis.png)
+*   **乌审旗站 (1023)：**
+    > ![1023_full_diagnosis](./visualization/timesnet_multi_dim_v2/1023_full_diagnosis.png)
 *   **油房庄站 (1027)：**
     > ![1027_full_diagnosis](./visualization/timesnet_multi_dim_v2/1027_full_diagnosis.png)
 *   **土默特站 (1036)：**
@@ -47,18 +47,18 @@
     > ![1048_full_diagnosis](./visualization/timesnet_multi_dim_v2/1048_full_diagnosis.png)
 
 **2. 操作类型覆盖展示：**
-*   **增量操作 (1010)：** 按计划提量识别。
-    > ![1010_full_diagnosis](./visualization/timesnet_multi_dim_v2/1010_full_diagnosis.png)
-*   **降量操作 (1007)：** 按计划减量识别。
-    > ![1007_full_diagnosis](./visualization/timesnet_multi_dim_v2/1007_full_diagnosis.png)
+*   **增量操作 (1014)：** 按计划提量识别。
+    > ![1014_full_diagnosis](./visualization/timesnet_multi_dim_v2/1014_full_diagnosis.png)
+*   **降量操作 (1020)：** 按计划减量识别。
+    > ![1020_full_diagnosis](./visualization/timesnet_multi_dim_v2/1020_full_diagnosis.png)
 *   **甩泵异常 (1028)：** 突发泵组故障捕捉。
     > ![1028_full_diagnosis](./visualization/timesnet_multi_dim_v2/1028_full_diagnosis.png)
-*   **切泵操作 (1004)：** 正常运行切换。
-    > ![1004_full_diagnosis](./visualization/timesnet_multi_dim_v2/1004_full_diagnosis.png)
-*   **启停泵 (1005)：** 泵组试运识别。
-    > ![1005_full_diagnosis](./visualization/timesnet_multi_dim_v2/1005_full_diagnosis.png)
-*   **紧急启停输 (1012)：** 突发停电、水击等重大工况监控。
-    > ![1012_full_diagnosis](./visualization/timesnet_multi_dim_v2/1012_full_diagnosis.png)
+*   **切泵操作 (1036)：** 正常运行切换。
+    > ![1036_full_diagnosis](./visualization/timesnet_multi_dim_v2/1036_full_diagnosis.png)
+*   **启停泵 (1061)：** 泵组试运识别。
+    > ![1061_full_diagnosis](./visualization/timesnet_multi_dim_v2/1061_full_diagnosis.png)
+*   **紧急启停输 (1013)：** 突发停电、水击等重大工况监控。
+    > ![1013_full_diagnosis](./visualization/timesnet_multi_dim_v2/1013_full_diagnosis.png)
 *   **计划启停输 (1018)：** 计划内作业停输识别。
     > ![1018_full_diagnosis](./visualization/timesnet_multi_dim_v2/1018_full_diagnosis.png)
 *   **下载燃料油 (1023)：** 支线作业波动捕捉。
@@ -72,12 +72,12 @@
 针对与 TimesNet 相同的测试序列，DADA 同样展现了极高的识别一致性。
 
 **1. 站点覆盖展示：**
-*   **全线相关操作 (1001)：**
-    > ![diag_1001](./visualization/splits/diag_1001.png)
-*   **鄂托克站 (1002)：**
-    > ![diag_1002](./visualization/splits/diag_1002.png)
-*   **乌审旗站 (1005)：**
-    > ![diag_1005](./visualization/splits/diag_1005.png)
+*   **全线相关操作 (1013)：**
+    > ![diag_1013](./visualization/splits/diag_1013.png)
+*   **鄂托克站 (1015)：**
+    > ![diag_1015](./visualization/splits/diag_1015.png)
+*   **乌审旗站 (1023)：**
+    > ![diag_1023](./visualization/splits/diag_1023.png)
 *   **油房庄站 (1027)：**
     > ![diag_1027](./visualization/splits/diag_1027.png)
 *   **土默特站 (1036)：**
@@ -86,18 +86,18 @@
     > ![diag_1048](./visualization/splits/diag_1048.png)
 
 **2. 操作类型覆盖展示：**
-*   **增量操作 (1010)：**
-    > ![diag_1010](./visualization/splits/diag_1010.png)
-*   **降量操作 (1007)：**
-    > ![diag_1007](./visualization/splits/diag_1007.png)
+*   **增量操作 (1014)：**
+    > ![diag_1014](./visualization/splits/diag_1014.png)
+*   **降量操作 (1020)：**
+    > ![diag_1020](./visualization/splits/diag_1020.png)
 *   **甩泵异常 (1028)：**
     > ![diag_1028](./visualization/splits/diag_1028.png)
-*   **切泵操作 (1004)：**
-    > ![diag_1004](./visualization/splits/diag_1004.png)
-*   **启停泵 (1005)：**
-    > ![diag_1005](./visualization/splits/diag_1005.png)
-*   **紧急启停输 (1012)：**
-    > ![diag_1012](./visualization/splits/diag_1012.png)
+*   **切泵操作 (1036)：**
+    > ![diag_1036](./visualization/splits/diag_1036.png)
+*   **启停泵 (1061)：**
+    > ![diag_1061](./visualization/splits/diag_1061.png)
+*   **紧急启停输 (1013)：**
+    > ![diag_1013](./visualization/splits/diag_1013.png)
 *   **计划启停输 (1018)：**
     > ![diag_1018](./visualization/splits/diag_1018.png)
 *   **下载燃料油 (1023)：**
