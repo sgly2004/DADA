@@ -51,6 +51,15 @@ def prepare():
                 sub_df = df[['date', col]].copy()
                 sub_df['label'] = 0
                 
+                # --- 新增：文件内局部归一化 ---
+                val_mean = sub_df[col].mean()
+                val_std = sub_df[col].std()
+                if val_std > 1e-6:
+                    sub_df[col] = (sub_df[col] - val_mean) / val_std
+                else:
+                    sub_df[col] = 0.0 # 处理常数序列
+                # -------------------------
+                
                 # 应用标注
                 if anno_df is not None:
                     file_anno = anno_df[anno_df['file_id'] == file_id]
