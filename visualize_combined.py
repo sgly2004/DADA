@@ -5,11 +5,15 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import json
+from tqdm import tqdm
 
 # 配置
 RAW_DATA_PATH = 'dataset/csv_data'
+ANNO_FILE = 'dataset/annotations.csv'
 RESULT_BASE = 'test_results'
-OUTPUT_FILE = 'test_results/gas_combined_diagnosis.png'
+OUTPUT_DIR = 'visualization'
+GLOBAL_PLOT = os.path.join(OUTPUT_DIR, 'combined_diagnosis_global.png')
+SPLIT_DIR = os.path.join(OUTPUT_DIR, 'splits')
 
 # 传感器配置
 TARGETS = {
@@ -18,29 +22,46 @@ TARGETS = {
 }
 
 def main():
+    os.makedirs(SPLIT_DIR, exist_ok=True)
+    
     # 1. 加载并合并原始数据
     csv_files = sorted([f for f in os.listdir(RAW_DATA_PATH) if f.endswith('.csv')])
     all_dfs = []
-    print("正在合并原始数据用于全景展示...")
-    for f in tqdm(csv_files) if 'tqdm' in globals() else csv_files:
+    anno_df = pd.read_csv(ANNO_FILE) if os.path.exists(ANNO_FILE) else None
+    
+    print("正在合并原始数据并同步标注...")
+    current_pos = 0
+    boundaries = []
+    for f in tqdm(csv_files):
         df = pd.read_csv(os.path.join(RAW_DATA_PATH, f))
+        file_id = f.replace('.csv', '')
         if '日期' in df.columns: df.rename(columns={'日期': 'date'}, inplace=True)
         elif 'date' not in df.columns: df.rename(columns={df.columns[0]: 'date'}, inplace=True)
+        
+        df['label'] = 0
+        if anno_df is not None:
+            file_anno = anno_df[anno_df['file_id'] == file_id]
+            if not file_anno.empty:
+                s_idx = int(file_anno['op_start_idx'].values[0])
+                e_idx_val = file_anno['recovery_idx'].values[0]
+                e_idx = int(e_idx_val) if not pd.isna(e_idx_val) else len(df)
+                # 注入标签
+                df.loc[s_idx:min(len(df), e_idx), 'label'] = 1
+        
+        boundaries.append({'file': f, 'start': current_pos, 'end': current_pos + len(df)})
         all_dfs.append(df)
+        current_pos += len(df)
     
     full_df = pd.concat(all_dfs, ignore_index=True)
     full_df['date'] = pd.to_datetime(full_df['date'])
     total_len = len(full_df)
-    train_lens = int(total_len * 0.1) # 对应 prepare_gas_data.py 中的比例
-    
-    # 截取测试部分
+    train_lens = int(total_len * 0.1)
     test_df = full_df.iloc[train_lens:].reset_index(drop=True)
     
-    # 2. 加载异常分数
+    # 2. 加载异常分数并计算 99 分位阈值
     scores = {}
     thresholds = {}
     min_len = len(test_df)
-    
     for sensor in TARGETS:
         score_path = os.path.join(RESULT_BASE, f"Gas_{sensor}_Merged", 'anomaly_score.npy')
         if os.path.exists(score_path):
@@ -48,147 +69,86 @@ def main():
             min_len = min(min_len, len(s))
             scores[sensor] = s
             thresholds[sensor] = np.percentile(s, 99)
-            print(f"{sensor} 99th percentile: {thresholds[sensor]:.4f}")
-        else:
-            print(f"警告: 找不到 {sensor} 的分数文件")
-
-    # 对齐所有数据长度
+            print(f"{sensor} 99th percentile threshold: {thresholds[sensor]:.4f}")
+    
     test_df = test_df.iloc[:min_len]
-    for sensor in scores:
-        scores[sensor] = scores[sensor][:min_len]
+    for s in scores: scores[s] = scores[s][:min_len]
 
-    # 3. 绘图 (4个子图)
-    fig, axes = plt.subplots(4, 1, figsize=(20, 24), sharex=True)
-    
-    # 子图 1: 压力全景 (PT 结尾的列)
-    pt_cols = [c for c in full_df.columns if 'PT' in c]
-    for col in pt_cols:
-        color = 'gray'
-        alpha = 0.2
-        linewidth = 0.5
-        label = None
-        # 如果是目标对应的 PT，稍微突出一点
-        for sensor, cfg in TARGETS.items():
-            if col == cfg['pt']:
-                color = cfg['color']
-                alpha = 0.6
-                linewidth = 1.0
-                label = f"{cfg['name']} Press"
-        axes[0].plot(test_df['date'], test_df[col], color=color, alpha=alpha, linewidth=linewidth, label=label)
-    axes[0].set_title('Pressure Context (All PT Sensors)', fontsize=16)
-    axes[0].set_ylabel('Pressure (MPa)', fontsize=12)
-    axes[0].grid(True, linestyle='--', alpha=0.5)
-    
-    # 子图 2: 流量全景 (FT 结尾的列)
-    ft_cols = [c for c in full_df.columns if 'FT' in c]
-    for col in ft_cols:
-        color = 'gray'
-        alpha = 0.2
-        linewidth = 0.5
-        label = None
-        # 如果是目标 FT，稍微突出一点
-        if col in TARGETS:
-            color = TARGETS[col]['color']
-            alpha = 0.6
-            linewidth = 1.0
-            label = TARGETS[col]['name']
-        axes[1].plot(test_df['date'], test_df[col], color=color, alpha=alpha, linewidth=linewidth, label=label)
-    axes[1].set_title('Flow Context (All FT Sensors)', fontsize=16)
-    axes[1].set_ylabel('Flow Rate (m³/h)', fontsize=12)
-    axes[1].grid(True, linestyle='--', alpha=0.5)
+    # 3. 绘图函数定义
+    def plot_data(df_part, score_part, file_name, save_path, is_global=False):
+        fig, axes = plt.subplots(4, 1, figsize=(20, 24) if is_global else (16, 20), sharex=True)
+        
+        # 子图 1 & 2: 压力与流量全景
+        pt_cols = [c for c in df_part.columns if 'PT' in c]
+        ft_cols = [c for c in df_part.columns if 'FT' in c]
+        
+        for ax, cols, y_label in zip(axes[:2], [pt_cols, ft_cols], ['Pressure (MPa)', 'Flow Rate (m³/h)']):
+            for col in cols:
+                color, lw, zorder, label = 'lightgray', 0.8, 1, None
+                for s, cfg in TARGETS.items():
+                    if col == cfg['pt'] or col == s:
+                        color, lw, zorder, label = cfg['color'], 1.5, 5, cfg['name']
+                ax.plot(df_part['date'], df_part[col], color=color, linewidth=lw, label=label, zorder=zorder)
+            ax.set_ylabel(y_label)
+            ax.legend(loc='upper right', fontsize=8, ncol=2)
+            ax.grid(True, linestyle='--', alpha=0.3)
 
-    # 子图 3: 两个关键流量
-    for sensor, cfg in TARGETS.items():
-        axes[2].plot(test_df['date'], test_df[sensor], color=cfg['color'], label=cfg['name'], linewidth=2.0)
-    axes[2].set_title('Target Flow Sensors Comparison', fontsize=16)
-    axes[2].set_ylabel('Flow Rate (m³/h)', fontsize=12)
-    axes[2].legend(loc='upper right')
-    axes[2].grid(True, linestyle='--', alpha=0.5)
-
-    # 子图 4: 异常分数
-    for sensor, cfg in TARGETS.items():
-        if sensor in scores:
-            axes[3].plot(test_df['date'], scores[sensor], color=cfg['color'], label=f"{cfg['name']} Score", alpha=0.8)
-            axes[3].axhline(y=thresholds[sensor], color=cfg['color'], linestyle='--', alpha=0.6, label=f"{cfg['name']} 99th Thr")
-    axes[3].set_title('Anomaly Scores & 99th Percentile Thresholds', fontsize=16)
-    axes[3].set_ylabel('Score', fontsize=12)
-    axes[3].set_xlabel('Date', fontsize=12)
-    axes[3].legend(loc='upper right')
-    axes[3].grid(True, linestyle='--', alpha=0.5)
-
-    # 处理边界抑制线 (从 boundaries.json 读取)
-    boundary_file = os.path.join('dataset/evaluation_dataset/data', 'CHX00F003FT0101', 'boundaries.json')
-    if os.path.exists(boundary_file):
-        with open(boundary_file, 'r') as f:
-            boundaries = json.load(f)
-        for i in range(1, len(boundaries)):
-            b_idx = boundaries[i]['start'] - train_lens
-            if 0 <= b_idx < min_len:
+        # 子图 3: 目标对比
+        for s, cfg in TARGETS.items():
+            axes[2].plot(df_part['date'], df_part[s], color=cfg['color'], label=cfg['name'], linewidth=2)
+        axes[2].set_ylabel('Flow Rate (m³/h)')
+        
+        # 标注背景颜色
+        # A. 真实标注 (浅灰色)
+        gt = df_part['label'].values
+        if np.any(gt > 0):
+            diff = np.diff(gt.astype(int), prepend=0, append=0)
+            for st, en in zip(np.where(diff==1)[0], np.where(diff==-1)[0]):
+                en = min(en, len(df_part)-1)
                 for ax in axes:
-                    ax.axvline(x=test_df['date'].iloc[b_idx], color='black', linestyle=':', alpha=0.2)
+                    ax.axvspan(df_part['date'].iloc[st], df_part['date'].iloc[en], color='gray', alpha=0.15, label='GT Anomaly' if (st==np.where(diff==1)[0][0] and ax==axes[2]) else None)
 
-    plt.tight_layout()
-    plt.savefig(OUTPUT_FILE, dpi=120)
-    print(f"全局组合诊断图已生成: {OUTPUT_FILE}")
-    plt.close()
+        # B. 预测异常 (颜色同步)
+        for s, cfg in TARGETS.items():
+            if s in score_part:
+                cur_scores = score_part[s]
+                is_p = cur_scores > thresholds[s]
+                if np.any(is_p):
+                    diff_p = np.diff(is_p.astype(int), prepend=0, append=0)
+                    for st, en in zip(np.where(diff_p==1)[0], np.where(diff_p==-1)[0]):
+                        en = min(en, len(df_part)-1)
+                        for ax in axes:
+                            ax.axvspan(df_part['date'].iloc[st], df_part['date'].iloc[en], color=cfg['color'], alpha=0.1)
 
-    # --- 新增：切分组合可视化逻辑 ---
-    split_dir = 'test_results/combined_splits'
-    os.makedirs(split_dir, exist_ok=True)
+        axes[2].set_title(f"Target Sensors Comparison - {file_name}")
+        axes[2].legend(loc='upper right')
+
+        # 子图 4: 异常分数
+        for s, cfg in TARGETS.items():
+            if s in score_part:
+                axes[3].plot(df_part['date'], score_part[s], color=cfg['color'], label=f"{cfg['name']} Score")
+                axes[3].axhline(y=thresholds[s], color=cfg['color'], linestyle='--', alpha=0.5)
+        axes[3].set_ylabel('Anomaly Score')
+        axes[3].legend(loc='upper right', fontsize=8)
+        
+        for ax in axes: ax.grid(True, linestyle='--', alpha=0.3)
+        plt.tight_layout()
+        plt.savefig(save_path, dpi=120 if is_global else 100)
+        plt.close()
+
+    # 执行生成
+    print("生成全局图...")
+    plot_data(test_df, scores, "Global View", GLOBAL_PLOT, is_global=True)
     
-    if os.path.exists(boundary_file):
-        print(f"正在生成切分组合诊断图到: {split_dir} ...")
-        for b in tqdm(boundaries) if 'tqdm' in globals() else boundaries:
-            file_name = b['file']
-            start_idx = b['start'] - train_lens
-            end_idx = b['end'] - train_lens
-            
-            # 过滤不在测试范围内的部分
-            if end_idx <= 0 or start_idx >= min_len:
-                continue
-            
-            s = max(0, start_idx)
-            e = min(min_len, end_idx)
-            
-            sub_df = test_df.iloc[s:e]
-            if sub_df.empty: continue
-            
-            fig, axes = plt.subplots(4, 1, figsize=(16, 18), sharex=True)
-            
-            # 1. 压力子图
-            for col in pt_cols:
-                color, alpha, lw, label = 'gray', 0.1, 0.5, None
-                for sensor, cfg in TARGETS.items():
-                    if col == cfg['pt']: color, alpha, lw, label = cfg['color'], 0.7, 1.2, cfg['name']
-                axes[0].plot(sub_df['date'], sub_df[col], color=color, alpha=alpha, linewidth=lw, label=label)
-            axes[0].set_title(f'Pressure Detail - {file_name}', fontsize=14)
-            
-            # 2. 流量子图
-            for col in ft_cols:
-                color, alpha, lw, label = 'gray', 0.1, 0.5, None
-                if col in TARGETS: color, alpha, lw, label = TARGETS[col]['color'], 0.7, 1.2, TARGETS[col]['name']
-                axes[1].plot(sub_df['date'], sub_df[col], color=color, alpha=alpha, linewidth=lw, label=label)
-            axes[1].set_title('Flow Detail', fontsize=14)
-            
-            # 3. 目标对比
-            for sensor, cfg in TARGETS.items():
-                axes[2].plot(sub_df['date'], sub_df[sensor], color=cfg['color'], label=cfg['name'], linewidth=1.5)
-            axes[2].set_title('Target Comparison', fontsize=14)
-            
-            # 4. 异常分数
-            for sensor, cfg in TARGETS.items():
-                if sensor in scores:
-                    sub_scores = scores[sensor][s:e]
-                    axes[3].plot(sub_df['date'], sub_scores, color=cfg['color'], label=f"{cfg['name']} Score")
-                    axes[3].axhline(y=thresholds[sensor], color=cfg['color'], linestyle='--', alpha=0.5)
-            axes[3].set_title('Anomaly Scores', fontsize=14)
-            
-            for ax in axes: ax.grid(True, linestyle='--', alpha=0.4)
-            plt.tight_layout()
-            plt.savefig(os.path.join(split_dir, f"combined_{file_name.replace('.csv', '.png')}"), dpi=100)
-            plt.close()
-        print(f"所有切分组合诊断图已完成。")
+    print("生成切分图...")
+    for b in tqdm(boundaries):
+        s_idx = max(0, b['start'] - train_lens)
+        e_idx = min(min_len, b['end'] - train_lens)
+        if e_idx <= s_idx: continue
+        
+        sub_df = test_df.iloc[s_idx:e_idx].reset_index(drop=True)
+        sub_scores = {s: sc[s_idx:e_idx] for s, sc in scores.items()}
+        plot_data(sub_df, sub_scores, b['file'], os.path.join(SPLIT_DIR, f"diag_{b['file'].replace('.csv', '.png')}"))
 
 if __name__ == '__main__':
-    from tqdm import tqdm
     main()
