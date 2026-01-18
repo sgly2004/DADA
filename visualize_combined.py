@@ -6,6 +6,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import json
 from tqdm import tqdm
+import argparse
 
 # 配置
 RAW_DATA_PATH = 'dataset/csv_data'
@@ -21,7 +22,7 @@ TARGETS = {
     'CHX00F002FT0101': {'color': 'green', 'name': 'CHX00F002FT0101', 'pt': 'CHX00F002PT0101'}
 }
 
-def main():
+def main(args):
     os.makedirs(SPLIT_DIR, exist_ok=True)
     
     # 1. 加载并合并原始数据
@@ -58,7 +59,7 @@ def main():
     train_lens = int(total_len * 0.1)
     test_df = full_df.iloc[train_lens:].reset_index(drop=True)
     
-    # 2. 加载异常分数并计算 99 分位阈值
+    # 2. 加载异常分数并确定阈值
     scores = {}
     thresholds = {}
     min_len = len(test_df)
@@ -68,8 +69,12 @@ def main():
             s = np.load(score_path)
             min_len = min(min_len, len(s))
             scores[sensor] = s
-            thresholds[sensor] = np.percentile(s, 99)
-            print(f"{sensor} 99th percentile threshold: {thresholds[sensor]:.4f}")
+            
+            if args.threshold is not None:
+                thresholds[sensor] = args.threshold
+            else:
+                thresholds[sensor] = np.percentile(s, args.percentile)
+            print(f"{sensor} threshold: {thresholds[sensor]:.4f} (based on {args.percentile if args.threshold is None else 'manual'} setting)")
     
     test_df = test_df.iloc[:min_len]
     for s in scores: scores[s] = scores[s][:min_len]
@@ -84,9 +89,7 @@ def main():
         
         for ax, cols, y_label in zip(axes[:2], [pt_cols, ft_cols], ['Pressure (MPa)', 'Flow Rate (m³/h)']):
             for col in cols:
-                # 背景线设为中灰色，不透明，线宽标准
                 color, lw, zorder, alpha, label = 'gray', 0.8, 1, 1.0, None
-                # 目标线仅改颜色，不加粗
                 for s, cfg in TARGETS.items():
                     if col == cfg['pt'] or col == s:
                         color, lw, zorder, label = cfg['color'], 0.8, 5, cfg['name']
@@ -101,7 +104,6 @@ def main():
         axes[2].set_ylabel('Flow Rate (m³/h)')
         
         # 标注背景颜色
-        # A. 真实标注 (浅灰色)
         gt = df_part['label'].values
         if np.any(gt > 0):
             diff = np.diff(gt.astype(int), prepend=0, append=0)
@@ -110,7 +112,6 @@ def main():
                 for ax in axes:
                     ax.axvspan(df_part['date'].iloc[st], df_part['date'].iloc[en], color='gray', alpha=0.15, label='GT Anomaly' if (st==np.where(diff==1)[0][0] and ax==axes[2]) else None)
 
-        # B. 预测异常 (颜色同步)
         for s, cfg in TARGETS.items():
             if s in score_part:
                 cur_scores = score_part[s]
@@ -153,4 +154,9 @@ def main():
         plot_data(sub_df, sub_scores, b['file'], os.path.join(SPLIT_DIR, f"diag_{b['file'].replace('.csv', '.png')}"))
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description='Gas Anomaly Visualization')
+    parser.add_argument('--percentile', type=float, default=99.0, help='Percentile for threshold calculation (0-100)')
+    parser.add_argument('--threshold', type=float, default=None, help='Manual threshold (overrides percentile)')
+    args = parser.parse_args()
+    main(args)
+
