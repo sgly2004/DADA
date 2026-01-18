@@ -34,65 +34,85 @@
 
 **1. 站点覆盖展示：**
 *   **全线相关操作 (1001)：**
-    > ![/Users/liuqiyuan/Documents/项目/operating-condition-time-series/operating-condition-time-series/TSLib-Custom/vis_results/multi_dim_v2/1001_full_diagnosis.png]
+    > ![1001_full_diagnosis](./visualization/timesnet_multi_dim_v2/1001_full_diagnosis.png)
 *   **鄂托克站 (1002)：**
-    > ![/Users/liuqiyuan/Documents/项目/operating-condition-time-series/operating-condition-time-series/TSLib-Custom/vis_results/multi_dim_v2/1002_full_diagnosis.png]
+    > ![1002_full_diagnosis](./visualization/timesnet_multi_dim_v2/1002_full_diagnosis.png)
 *   **乌审旗站 (1005)：**
-    > ![/Users/liuqiyuan/Documents/项目/operating-condition-time-series/operating-condition-time-series/TSLib-Custom/vis_results/multi_dim_v2/1005_full_diagnosis.png]
+    > ![1005_full_diagnosis](./visualization/timesnet_multi_dim_v2/1005_full_diagnosis.png)
 *   **油房庄站 (1027)：**
-    > ![/Users/liuqiyuan/Documents/项目/operating-condition-time-series/operating-condition-time-series/TSLib-Custom/vis_results/multi_dim_v2/1027_full_diagnosis.png]
+    > ![1027_full_diagnosis](./visualization/timesnet_multi_dim_v2/1027_full_diagnosis.png)
 *   **土默特站 (1036)：**
-    > ![/Users/liuqiyuan/Documents/项目/operating-condition-time-series/operating-condition-time-series/TSLib-Custom/vis_results/multi_dim_v2/1036_full_diagnosis.png]
+    > ![1036_full_diagnosis](./visualization/timesnet_multi_dim_v2/1036_full_diagnosis.png)
 *   **达拉特站 (1048)：**
-    > ![/Users/liuqiyuan/Documents/项目/operating-condition-time-series/operating-condition-time-series/TSLib-Custom/vis_results/multi_dim_v2/1048_full_diagnosis.png]
+    > ![1048_full_diagnosis](./visualization/timesnet_multi_dim_v2/1048_full_diagnosis.png)
 
 **2. 操作类型覆盖展示：**
 *   **增量操作 (1010)：** 按计划提量识别。
-    > ![/Users/liuqiyuan/Documents/项目/operating-condition-time-series/operating-condition-time-series/TSLib-Custom/vis_results/multi_dim_v2/1010_full_diagnosis.png]
+    > ![1010_full_diagnosis](./visualization/timesnet_multi_dim_v2/1010_full_diagnosis.png)
 *   **降量操作 (1007)：** 按计划减量识别。
-    > ![/Users/liuqiyuan/Documents/项目/operating-condition-time-series/operating-condition-time-series/TSLib-Custom/vis_results/multi_dim_v2/1007_full_diagnosis.png]
+    > ![1007_full_diagnosis](./visualization/timesnet_multi_dim_v2/1007_full_diagnosis.png)
 *   **甩泵异常 (1028)：** 突发泵组故障捕捉。
-    > ![/Users/liuqiyuan/Documents/项目/operating-condition-time-series/operating-condition-time-series/TSLib-Custom/vis_results/multi_dim_v2/1028_full_diagnosis.png]
+    > ![1028_full_diagnosis](./visualization/timesnet_multi_dim_v2/1028_full_diagnosis.png)
 *   **切泵操作 (1004)：** 正常运行切换。
-    > ![/Users/liuqiyuan/Documents/项目/operating-condition-time-series/operating-condition-time-series/TSLib-Custom/vis_results/multi_dim_v2/1004_full_diagnosis.png]
+    > ![1004_full_diagnosis](./visualization/timesnet_multi_dim_v2/1004_full_diagnosis.png)
 *   **启停泵 (1005)：** 泵组试运识别。
-    > ![/Users/liuqiyuan/Documents/项目/operating-condition-time-series/operating-condition-time-series/TSLib-Custom/vis_results/multi_dim_v2/1005_full_diagnosis.png]
+    > ![1005_full_diagnosis](./visualization/timesnet_multi_dim_v2/1005_full_diagnosis.png)
 *   **紧急启停输 (1012)：** 突发停电、水击等重大工况监控。
-    > ![/Users/liuqiyuan/Documents/项目/operating-condition-time-series/operating-condition-time-series/TSLib-Custom/vis_results/multi_dim_v2/1012_full_diagnosis.png]
+    > ![1012_full_diagnosis](./visualization/timesnet_multi_dim_v2/1012_full_diagnosis.png)
 *   **计划启停输 (1018)：** 计划内作业停输识别。
-    > ![/Users/liuqiyuan/Documents/项目/operating-condition-time-series/operating-condition-time-series/TSLib-Custom/vis_results/multi_dim_v2/1018_full_diagnosis.png]
+    > ![1018_full_diagnosis](./visualization/timesnet_multi_dim_v2/1018_full_diagnosis.png)
 *   **下载燃料油 (1023)：** 支线作业波动捕捉。
-    > ![/Users/liuqiyuan/Documents/项目/operating-condition-time-series/operating-condition-time-series/TSLib-Custom/vis_results/multi_dim_v2/1023_full_diagnosis.png]
+    > ![1023_full_diagnosis](./visualization/timesnet_multi_dim_v2/1023_full_diagnosis.png)
 
 #### 2.1.2 冗余算法 B：DADA (已完成)
 **技术说明：** DADA (Towards a General Time Series Anomaly Detector with Adaptive Bottlenecks and Dual Adversarial Decoders) 是一种通用的时间序列异常检测器。它通过**自适应瓶颈（Adaptive Bottlenecks）**和**双对抗解码器（Dual Adversarial Decoders）**架构，实现了零样本（Zero-shot）的异常捕获能力。
 *   **作用：** 作为 TimesNet 的冗余备份，DADA 能够独立对流量、压力信号进行敏感度极高的波动捕捉，通过两个模型在异常区间上的“共识”来判定最终告警。
 
-**DADA 识别结果展示：**
-我们选取了部分典型工况，展示 DADA 在不同文件及传感器（CHX00F003FT0101 & CHX00F002FT0101）下的检测表现：
+**全覆盖识别验证：**
+针对与 TimesNet 相同的测试序列，DADA 同样展现了极高的识别一致性。
 
-*   **突发波动识别 (1013)：** 精准捕捉流量的阶跃式变化。
-    > ![/Users/liuqiyuan/Documents/项目/operating-condition-time-series/DADA/visualization/splits/diag_1013.png]
-*   **复杂震荡监控 (1017)：** 在压力与流量同步震荡时，准确锁定高分区间。
-    > ![/Users/liuqiyuan/Documents/项目/operating-condition-time-series/DADA/visualization/splits/diag_1017.png]
-*   **甩泵/计划停输识别 (1018/1028)：** 
-    > ![/Users/liuqiyuan/Documents/项目/operating-condition-time-series/DADA/visualization/splits/diag_1018.png]
-    > ![/Users/liuqiyuan/Documents/项目/operating-condition-time-series/DADA/visualization/splits/diag_1028.png]
-*   **下载作业波动 (1023)：** 
-    > ![/Users/liuqiyuan/Documents/项目/operating-condition-time-series/DADA/visualization/splits/diag_1023.png]
-*   **长期运行稳定性 (1039)：** 
-    > ![/Users/liuqiyuan/Documents/项目/operating-condition-time-series/DADA/visualization/splits/diag_1039.png]
+**1. 站点覆盖展示：**
+*   **全线相关操作 (1001)：**
+    > ![diag_1001](./visualization/splits/diag_1001.png)
+*   **鄂托克站 (1002)：**
+    > ![diag_1002](./visualization/splits/diag_1002.png)
+*   **乌审旗站 (1005)：**
+    > ![diag_1005](./visualization/splits/diag_1005.png)
+*   **油房庄站 (1027)：**
+    > ![diag_1027](./visualization/splits/diag_1027.png)
+*   **土默特站 (1036)：**
+    > ![diag_1036](./visualization/splits/diag_1036.png)
+*   **达拉特站 (1048)：**
+    > ![diag_1048](./visualization/splits/diag_1048.png)
 
----
+**2. 操作类型覆盖展示：**
+*   **增量操作 (1010)：**
+    > ![diag_1010](./visualization/splits/diag_1010.png)
+*   **降量操作 (1007)：**
+    > ![diag_1007](./visualization/splits/diag_1007.png)
+*   **甩泵异常 (1028)：**
+    > ![diag_1028](./visualization/splits/diag_1028.png)
+*   **切泵操作 (1004)：**
+    > ![diag_1004](./visualization/splits/diag_1004.png)
+*   **启停泵 (1005)：**
+    > ![diag_1005](./visualization/splits/diag_1005.png)
+*   **紧急启停输 (1012)：**
+    > ![diag_1012](./visualization/splits/diag_1012.png)
+*   **计划启停输 (1018)：**
+    > ![diag_1018](./visualization/splits/diag_1018.png)
+*   **下载燃料油 (1023)：**
+    > ![diag_1023](./visualization/splits/diag_1023.png)
 
-### 2.2 冗余检测共识机制 (核心优势)
+#### 2.1.3 冗余检测共识机制 (核心优势)
 系统通过对比 **TimesNet** 的能量重构分数与 **DADA** 的自适应瓶颈分数，寻找交集区间（Joint Anomaly）。
 *   **双重验证：** 如图中红色阴影区域所示，当两条独立的技术路线同时触发预警时，系统可靠性提升至工业级标准。
 *   **独立度量：** 两个模型采用不同的归一化与特征提取逻辑，有效规避了单模型的系统性偏见。
 
 ---
 
-### 2.3 工况分类模块
+## 二、 项目实施进展
+
+### 2.2 工况分类模块
 
 工况分类旨在实现从“发现异常”到“解释原因”的转化。
 
