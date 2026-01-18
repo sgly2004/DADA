@@ -98,7 +98,7 @@ def prepare():
             meta_entries.append({
                 'file_name': f"{col}/merged.csv",
                 'dataset_name': f"Gas_{col}_Merged",
-                'train_lens': int(len(merged_df) * 0.1),
+                'train_lens': int(len(merged_df) * 0.01), # 改为 1%
                 'if_univariate': 'TRUE',
                 'size': 'large'
             })

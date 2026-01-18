@@ -56,7 +56,7 @@ def main(args):
     full_df = pd.concat(all_dfs, ignore_index=True)
     full_df['date'] = pd.to_datetime(full_df['date'])
     total_len = len(full_df)
-    train_lens = int(total_len * 0.1)
+    train_lens = int(total_len * 0.01) # 改为 1%
     test_df = full_df.iloc[train_lens:].reset_index(drop=True)
     
     # 2. 加载异常分数并确定阈值
