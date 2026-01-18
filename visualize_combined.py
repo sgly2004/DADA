@@ -15,10 +15,10 @@ OUTPUT_DIR = 'visualization'
 GLOBAL_PLOT = os.path.join(OUTPUT_DIR, 'combined_diagnosis_global.png')
 SPLIT_DIR = os.path.join(OUTPUT_DIR, 'splits')
 
-# 传感器配置
+# 传感器配置 - 直接使用 ID
 TARGETS = {
-    'CHX00F003FT0101': {'color': 'blue', 'name': 'Wushen Flow', 'pt': 'CHX00F003PT0101'},
-    'CHX00F002FT0101': {'color': 'green', 'name': 'Etoke Flow', 'pt': 'CHX00F002PT0101'}
+    'CHX00F003FT0101': {'color': 'blue', 'name': 'CHX00F003FT0101', 'pt': 'CHX00F003PT0101'},
+    'CHX00F002FT0101': {'color': 'green', 'name': 'CHX00F002FT0101', 'pt': 'CHX00F002PT0101'}
 }
 
 def main():
@@ -84,18 +84,20 @@ def main():
         
         for ax, cols, y_label in zip(axes[:2], [pt_cols, ft_cols], ['Pressure (MPa)', 'Flow Rate (m³/h)']):
             for col in cols:
-                color, lw, zorder, label = 'lightgray', 0.8, 1, None
+                # 背景线设为中灰色，不透明，线宽标准
+                color, lw, zorder, alpha, label = 'gray', 0.8, 1, 1.0, None
+                # 目标线仅改颜色，不加粗
                 for s, cfg in TARGETS.items():
                     if col == cfg['pt'] or col == s:
-                        color, lw, zorder, label = cfg['color'], 1.5, 5, cfg['name']
-                ax.plot(df_part['date'], df_part[col], color=color, linewidth=lw, label=label, zorder=zorder)
+                        color, lw, zorder, label = cfg['color'], 0.8, 5, cfg['name']
+                ax.plot(df_part['date'], df_part[col], color=color, linewidth=lw, alpha=alpha, label=label, zorder=zorder)
             ax.set_ylabel(y_label)
             ax.legend(loc='upper right', fontsize=8, ncol=2)
             ax.grid(True, linestyle='--', alpha=0.3)
 
         # 子图 3: 目标对比
         for s, cfg in TARGETS.items():
-            axes[2].plot(df_part['date'], df_part[s], color=cfg['color'], label=cfg['name'], linewidth=2)
+            axes[2].plot(df_part['date'], df_part[s], color=cfg['color'], label=cfg['name'], linewidth=1.5)
         axes[2].set_ylabel('Flow Rate (m³/h)')
         
         # 标注背景颜色
