@@ -103,25 +103,31 @@ def main(args):
             axes[2].plot(df_part['date'], df_part[s], color=cfg['color'], label=cfg['name'], linewidth=1.5)
         axes[2].set_ylabel('Flow Rate (m³/h)')
         
-        # 标注背景颜色
-        gt = df_part['label'].values
-        if np.any(gt > 0):
-            diff = np.diff(gt.astype(int), prepend=0, append=0)
-            for st, en in zip(np.where(diff==1)[0], np.where(diff==-1)[0]):
-                en = min(en, len(df_part)-1)
-                for ax in axes:
-                    ax.axvspan(df_part['date'].iloc[st], df_part['date'].iloc[en], color='gray', alpha=0.15, label='GT Anomaly' if (st==np.where(diff==1)[0][0] and ax==axes[2]) else None)
+        # 标注预测背景颜色 (去掉 GT 可视化)
+        joint_anomaly = np.ones(len(df_part), dtype=bool)
+        any_score_loaded = False
 
         for s, cfg in TARGETS.items():
             if s in score_part:
+                any_score_loaded = True
                 cur_scores = score_part[s]
                 is_p = cur_scores > thresholds[s]
+                joint_anomaly &= is_p # 累计交集
+                
                 if np.any(is_p):
                     diff_p = np.diff(is_p.astype(int), prepend=0, append=0)
                     for st, en in zip(np.where(diff_p==1)[0], np.where(diff_p==-1)[0]):
                         en = min(en, len(df_part)-1)
                         for ax in axes:
                             ax.axvspan(df_part['date'].iloc[st], df_part['date'].iloc[en], color=cfg['color'], alpha=0.1)
+
+        # 额外标注：两个检测点都检测到异常的部分 (交集，红色)
+        if any_score_loaded and np.any(joint_anomaly):
+            diff_j = np.diff(joint_anomaly.astype(int), prepend=0, append=0)
+            for st, en in zip(np.where(diff_j==1)[0], np.where(diff_j==-1)[0]):
+                en = min(en, len(df_part)-1)
+                for ax in axes:
+                    ax.axvspan(df_part['date'].iloc[st], df_part['date'].iloc[en], color='red', alpha=0.3, label='Joint Anomaly' if (ax==axes[2] and st==np.where(diff_j==1)[0][0]) else None)
 
         axes[2].set_title(f"Target Sensors Comparison - {file_name}")
         axes[2].legend(loc='upper right')
