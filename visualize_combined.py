@@ -129,7 +129,65 @@ def main():
 
     plt.tight_layout()
     plt.savefig(OUTPUT_FILE, dpi=120)
-    print(f"组合诊断图已生成: {OUTPUT_FILE}")
+    print(f"全局组合诊断图已生成: {OUTPUT_FILE}")
+    plt.close()
+
+    # --- 新增：切分组合可视化逻辑 ---
+    split_dir = 'test_results/combined_splits'
+    os.makedirs(split_dir, exist_ok=True)
+    
+    if os.path.exists(boundary_file):
+        print(f"正在生成切分组合诊断图到: {split_dir} ...")
+        for b in tqdm(boundaries) if 'tqdm' in globals() else boundaries:
+            file_name = b['file']
+            start_idx = b['start'] - train_lens
+            end_idx = b['end'] - train_lens
+            
+            # 过滤不在测试范围内的部分
+            if end_idx <= 0 or start_idx >= min_len:
+                continue
+            
+            s = max(0, start_idx)
+            e = min(min_len, end_idx)
+            
+            sub_df = test_df.iloc[s:e]
+            if sub_df.empty: continue
+            
+            fig, axes = plt.subplots(4, 1, figsize=(16, 18), sharex=True)
+            
+            # 1. 压力子图
+            for col in pt_cols:
+                color, alpha, lw, label = 'gray', 0.1, 0.5, None
+                for sensor, cfg in TARGETS.items():
+                    if col == cfg['pt']: color, alpha, lw, label = cfg['color'], 0.7, 1.2, cfg['name']
+                axes[0].plot(sub_df['date'], sub_df[col], color=color, alpha=alpha, linewidth=lw, label=label)
+            axes[0].set_title(f'Pressure Detail - {file_name}', fontsize=14)
+            
+            # 2. 流量子图
+            for col in ft_cols:
+                color, alpha, lw, label = 'gray', 0.1, 0.5, None
+                if col in TARGETS: color, alpha, lw, label = TARGETS[col]['color'], 0.7, 1.2, TARGETS[col]['name']
+                axes[1].plot(sub_df['date'], sub_df[col], color=color, alpha=alpha, linewidth=lw, label=label)
+            axes[1].set_title('Flow Detail', fontsize=14)
+            
+            # 3. 目标对比
+            for sensor, cfg in TARGETS.items():
+                axes[2].plot(sub_df['date'], sub_df[sensor], color=cfg['color'], label=cfg['name'], linewidth=1.5)
+            axes[2].set_title('Target Comparison', fontsize=14)
+            
+            # 4. 异常分数
+            for sensor, cfg in TARGETS.items():
+                if sensor in scores:
+                    sub_scores = scores[sensor][s:e]
+                    axes[3].plot(sub_df['date'], sub_scores, color=cfg['color'], label=f"{cfg['name']} Score")
+                    axes[3].axhline(y=thresholds[sensor], color=cfg['color'], linestyle='--', alpha=0.5)
+            axes[3].set_title('Anomaly Scores', fontsize=14)
+            
+            for ax in axes: ax.grid(True, linestyle='--', alpha=0.4)
+            plt.tight_layout()
+            plt.savefig(os.path.join(split_dir, f"combined_{file_name.replace('.csv', '.png')}"), dpi=100)
+            plt.close()
+        print(f"所有切分组合诊断图已完成。")
 
 if __name__ == '__main__':
     from tqdm import tqdm
