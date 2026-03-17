@@ -1,22 +1,8 @@
-# 气液管道运行工况识别与异常诊断项目阶段性汇报
+## 一、 技术路线概述
 
-**汇报日期：** 2026年1月18日
-**项目目标：** 构建具备工业级可靠性的异常监测与诊断系统，实现全线工况的**自动识别**、**冗余检测**与**精准分类**。
-
----
-
-## 一、 总体技术架构
-
-本项目采用“二级分层、双模检测”的工业级架构，旨在建立从底层异常捕捉到高层业务决策的完整链路。
-
-### 1. 技术路线概述
-系统分为**异常检测（Detection）**与**工况分类（Classification）**两个核心阶段：
+系统分为 **异常检测（Detection）** 与 **工况分类（Classification）** 两个核心阶段：
 *   **第一阶段（异常检测）：** 通过多维度时序分析模型，实时监控压力与流量的波动。该阶段采用 **TimesNet** 与 **DADA** 双模型冗余配置，确保告警的灵敏度与真实性。
 *   **第二阶段（工况分类）：** 在检测到波动区间后，自动提取波形特征（如峰值、频率、耦合度等），通过模式识别技术判定具体的业务操作类型。
-
-### 2. 核心设计理念
-*   **单维度精细建模：** 针对关键站点（如乌审旗、鄂托克）的独立物理指标进行建模，避免全局数据中的“异常信号稀释”。
-*   **冗余共识机制：** 只有当冗余检测模型达成一致时，系统才输出确定性结论，最大限度压低虚警率。
 
 ---
 
@@ -26,87 +12,82 @@
 
 异常检测是系统的基础，目前已完成核心算法的训练与全线多场景回测。
 
-#### 2.1.1 核心算法 A：TimesNet (已完成)
+#### 2.1.1 核心算法 A：TimesNet
 **技术说明：** TimesNet 是一种先进的时序表征模型，它通过将一维时间序列转化为二维周期图像，利用计算机视觉技术提取复杂工况下的波动特征。
 
 **全覆盖识别验证：**
 为证明算法的普适性，我们针对全线关键站点及主要操作类型进行了全量识别验证。
 
 **1. 站点覆盖展示：**
-*   **全线相关操作 (1013)：**
-    > ![1013_full_diagnosis](./visualization/timesnet_multi_dim_v2/1013_full_diagnosis.png)
-*   **鄂托克站 (1015)：**
-    > ![1015_full_diagnosis](./visualization/timesnet_multi_dim_v2/1015_full_diagnosis.png)
-*   **乌审旗站 (1023)：**
-    > ![1023_full_diagnosis](./visualization/timesnet_multi_dim_v2/1023_full_diagnosis.png)
+*   **全线相关操作 (1001)：**
+    > ![1001_full_diagnosis](./visualization/timesnet_multi_dim_v2/1001_full_diagnosis.png)
+*   **鄂托克站 (1002)：**
+    > ![1002_full_diagnosis](./visualization/timesnet_multi_dim_v2/1002_full_diagnosis.png)
+*   **乌审旗站 (1006)：**
+    > ![1006_full_diagnosis](./visualization/timesnet_multi_dim_v2/1006_full_diagnosis.png)
 *   **油房庄站 (1027)：**
     > ![1027_full_diagnosis](./visualization/timesnet_multi_dim_v2/1027_full_diagnosis.png)
-*   **土默特站 (1036)：**
-    > ![1036_full_diagnosis](./visualization/timesnet_multi_dim_v2/1036_full_diagnosis.png)
-*   **达拉特站 (1048)：**
-    > ![1048_full_diagnosis](./visualization/timesnet_multi_dim_v2/1048_full_diagnosis.png)
+*   **土默特站 (1042)：**
+    > ![1042_full_diagnosis](./visualization/timesnet_multi_dim_v2/1042_full_diagnosis.png)
+*   **达拉特站 (1038)：**
+    > ![1038_full_diagnosis](./visualization/timesnet_multi_dim_v2/1038_full_diagnosis.png)
 
 **2. 操作类型覆盖展示：**
-*   **增量操作 (1014)：** 按计划提量识别。
-    > ![1014_full_diagnosis](./visualization/timesnet_multi_dim_v2/1014_full_diagnosis.png)
-*   **降量操作 (1020)：** 按计划减量识别。
-    > ![1020_full_diagnosis](./visualization/timesnet_multi_dim_v2/1020_full_diagnosis.png)
+*   **增量操作 (1010)：** 按计划提量识别。
+    > ![1010_full_diagnosis](./visualization/timesnet_multi_dim_v2/1010_full_diagnosis.png)
+*   **降量操作 (1007)：** 按计划减量识别。
+    > ![1007_full_diagnosis](./visualization/timesnet_multi_dim_v2/1007_full_diagnosis.png)
 *   **甩泵异常 (1028)：** 突发泵组故障捕捉。
     > ![1028_full_diagnosis](./visualization/timesnet_multi_dim_v2/1028_full_diagnosis.png)
-*   **切泵操作 (1036)：** 正常运行切换。
-    > ![1036_full_diagnosis](./visualization/timesnet_multi_dim_v2/1036_full_diagnosis.png)
-*   **启停泵 (1061)：** 泵组试运识别。
-    > ![1061_full_diagnosis](./visualization/timesnet_multi_dim_v2/1061_full_diagnosis.png)
-*   **紧急启停输 (1013)：** 突发停电、水击等重大工况监控。
-    > ![1013_full_diagnosis](./visualization/timesnet_multi_dim_v2/1013_full_diagnosis.png)
+*   **切泵操作 (1004)：** 正常运行切换。
+    > ![1004_full_diagnosis](./visualization/timesnet_multi_dim_v2/1004_full_diagnosis.png)
+*   **启停泵 (1005)：** 泵组试运识别。
+    > ![1005_full_diagnosis](./visualization/timesnet_multi_dim_v2/1005_full_diagnosis.png)
+*   **紧急启停输 (1012)：** 突发停电、水击等重大工况监控。
+    > ![1012_full_diagnosis](./visualization/timesnet_multi_dim_v2/1012_full_diagnosis.png)
 *   **计划启停输 (1018)：** 计划内作业停输识别。
     > ![1018_full_diagnosis](./visualization/timesnet_multi_dim_v2/1018_full_diagnosis.png)
 *   **下载燃料油 (1023)：** 支线作业波动捕捉。
     > ![1023_full_diagnosis](./visualization/timesnet_multi_dim_v2/1023_full_diagnosis.png)
 
-#### 2.1.2 冗余算法 B：DADA (已完成)
+#### 2.1.2 冗余算法 B：DADA
 **技术说明：** DADA (Towards a General Time Series Anomaly Detector with Adaptive Bottlenecks and Dual Adversarial Decoders) 是一种通用的时间序列异常检测器。它通过**自适应瓶颈（Adaptive Bottlenecks）**和**双对抗解码器（Dual Adversarial Decoders）**架构，实现了零样本（Zero-shot）的异常捕获能力。
 *   **作用：** 作为 TimesNet 的冗余备份，DADA 能够独立对流量、压力信号进行敏感度极高的波动捕捉，通过两个模型在异常区间上的“共识”来判定最终告警。
 
 **全覆盖识别验证：**
-针对与 TimesNet 相同的测试序列，DADA 同样展现了极高的识别一致性。
+针对全线关键工况，DADA 展现了与 TimesNet 高度互补的识别能力。
 
 **1. 站点覆盖展示：**
 *   **全线相关操作 (1013)：**
     > ![diag_1013](./visualization/splits/diag_1013.png)
 *   **鄂托克站 (1015)：**
     > ![diag_1015](./visualization/splits/diag_1015.png)
-*   **乌审旗站 (1023)：**
-    > ![diag_1023](./visualization/splits/diag_1023.png)
-*   **油房庄站 (1027)：**
-    > ![diag_1027](./visualization/splits/diag_1027.png)
-*   **土默特站 (1036)：**
-    > ![diag_1036](./visualization/splits/diag_1036.png)
+*   **乌审旗站 (1044)：**
+    > ![diag_1044](./visualization/splits/diag_1044.png)
+*   **油房庄站 (1067)：**
+    > ![diag_1067](./visualization/splits/diag_1067.png)
+*   **土默特站 (1049)：**
+    > ![diag_1049](./visualization/splits/diag_1049.png)
 *   **达拉特站 (1048)：**
     > ![diag_1048](./visualization/splits/diag_1048.png)
 
 **2. 操作类型覆盖展示：**
-*   **增量操作 (1014)：**
-    > ![diag_1014](./visualization/splits/diag_1014.png)
-*   **降量操作 (1020)：**
-    > ![diag_1020](./visualization/splits/diag_1020.png)
-*   **甩泵异常 (1028)：**
-    > ![diag_1028](./visualization/splits/diag_1028.png)
+*   **增量操作 (1021)：**
+    > ![diag_1021](./visualization/splits/diag_1021.png)
+*   **降量操作 (1022)：**
+    > ![diag_1022](./visualization/splits/diag_1022.png)
+*   **甩泵异常 (1035)：**
+    > ![diag_1035](./visualization/splits/diag_1035.png)
 *   **切泵操作 (1036)：**
     > ![diag_1036](./visualization/splits/diag_1036.png)
 *   **启停泵 (1061)：**
     > ![diag_1061](./visualization/splits/diag_1061.png)
-*   **紧急启停输 (1013)：**
-    > ![diag_1013](./visualization/splits/diag_1013.png)
-*   **计划启停输 (1018)：**
-    > ![diag_1018](./visualization/splits/diag_1018.png)
-*   **下载燃料油 (1023)：**
-    > ![diag_1023](./visualization/splits/diag_1023.png)
-
-#### 2.1.3 冗余检测共识机制 (核心优势)
-系统通过对比 **TimesNet** 的能量重构分数与 **DADA** 的自适应瓶颈分数，寻找交集区间（Joint Anomaly）。
-*   **双重验证：** 如图中红色阴影区域所示，当两条独立的技术路线同时触发预警时，系统可靠性提升至工业级标准。
-*   **独立度量：** 两个模型采用不同的归一化与特征提取逻辑，有效规避了单模型的系统性偏见。
+*   **紧急启停输 (1016)：**
+    > ![diag_1016](./visualization/splits/diag_1016.png)
+*   **计划启停输 (1019)：**
+    > ![diag_1019](./visualization/splits/diag_1019.png)
+*   **下载燃料油 (1034)：**
+    > ![diag_1034](./visualization/splits/diag_1034.png)
 
 ---
 
